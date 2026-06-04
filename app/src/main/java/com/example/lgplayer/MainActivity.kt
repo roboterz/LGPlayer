@@ -66,6 +66,15 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LgplayerTheme {
+                val sharedPlayerViewModel: PlayerViewModel = viewModel(
+                    factory = object : ViewModelProvider.Factory {
+                        @Suppress("UNCHECKED_CAST")
+                        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                            return PlayerViewModel(application) as T
+                        }
+                    }
+                )
+
                 val backStack = remember { 
                     val initialRoute = handleIntent(intent) ?: Route.VideoList
                     mutableStateListOf<Route>(initialRoute) 
@@ -75,6 +84,24 @@ class MainActivity : ComponentActivity() {
                 DisposableEffect(Unit) {
                     val listener = androidx.core.util.Consumer<android.content.Intent> { newIntent ->
                         handleIntent(newIntent)?.let { route ->
+                            val playerRoute = route as? Route.Player
+                            
+                            // 1. Force exit PiP mode if active
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+                                val exitIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
+                                    action = Intent.ACTION_MAIN
+                                    addCategory(Intent.CATEGORY_LAUNCHER)
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                }
+                                startActivity(exitIntent)
+                            }
+
+                            // 2. Immediately tell the ViewModel to load the new content
+                            if (playerRoute != null) {
+                                sharedPlayerViewModel.load(playerRoute.videoUri, playerRoute.title)
+                            }
+
+                            // 3. Update the navigation stack
                             if (backStack.lastOrNull() != route) {
                                 backStack.removeAll { it is Route.Player }
                                 backStack.add(route)
@@ -133,37 +160,28 @@ class MainActivity : ComponentActivity() {
                         entry<Route.Player>(
                             metadata = ListDetailSceneStrategy.detailPane()
                         ) { route ->
-                            val playerViewModel: PlayerViewModel = viewModel(
-                                factory = object : ViewModelProvider.Factory {
-                                    @Suppress("UNCHECKED_CAST")
-                                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                        return PlayerViewModel(applicationContext) as T
-                                    }
-                                }
-                            )
-                            
                             // Reactively load the media whenever the route changes
-                            LaunchedEffect(route.videoUri) {
-                                playerViewModel.load(route.videoUri, route.title)
+                            LaunchedEffect(route) {
+                                sharedPlayerViewModel.load(route.videoUri, route.title)
                             }
 
-                            DisposableEffect(playerViewModel) {
-                                currentPlayerViewModel = playerViewModel
+                            DisposableEffect(sharedPlayerViewModel) {
+                                currentPlayerViewModel = sharedPlayerViewModel
                                 onDispose {
-                                    if (currentPlayerViewModel == playerViewModel) {
+                                    if (currentPlayerViewModel == sharedPlayerViewModel) {
                                         currentPlayerViewModel = null
                                     }
                                 }
                             }
 
-                            val isPlaying by playerViewModel.isPlaying.collectAsState()
+                            val isPlaying by sharedPlayerViewModel.isPlaying.collectAsState()
                             LaunchedEffect(isPlaying) {
                                 if (isInPipMode) {
                                     updatePipParams(isPlaying)
                                 }
                             }
                             PlayerScreen(
-                                viewModel = playerViewModel,
+                                viewModel = sharedPlayerViewModel,
                                 isInPipMode = isInPipMode
                             )
                         }

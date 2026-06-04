@@ -1,11 +1,12 @@
 package com.example.lgplayer.ui
 
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.annotation.OptIn
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -24,8 +25,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 @OptIn(UnstableApi::class)
-class PlayerViewModel(private val context: Context) : ViewModel() {
-    private val database = LGPlayerDatabase.getDatabase(context)
+class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+    private val database = LGPlayerDatabase.getDatabase(application)
     private val playbackDao = database.playbackDao()
     private var progressJob: Job? = null
     
@@ -75,17 +76,15 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     init {
-        val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+        val sessionToken = SessionToken(application, ComponentName(application, PlaybackService::class.java))
+        controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
         controllerFuture?.addListener({
             try {
                 val controller = controllerFuture?.get() ?: return@addListener
                 _player.value = controller
                 controller.addListener(playerListener)
-                // If a load was called before the controller was ready, handle it now
                 currentUri?.let { uri -> 
-                    val title = _displayTitle.value
-                    performLoad(controller, uri, if (title == "Loading...") null else title) 
+                    performLoad(controller, uri) 
                 }
             } catch (e: Exception) {
                 _player.value = null
@@ -96,20 +95,19 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     fun load(uri: String, title: String?) {
-        if (currentUri == uri) return
-        
+        // Remove the return check to force reload/resume when requested
         currentUri = uri
-        _displayTitle.value = title ?: getFileName(context, Uri.parse(uri))
-        currentPlaybackKey = getFileFingerprint(context, Uri.parse(uri))
+        _displayTitle.value = title ?: getFileName(getApplication(), Uri.parse(uri))
+        currentPlaybackKey = getFileFingerprint(getApplication(), Uri.parse(uri))
         hasResumedProgress = false
         
         val p = _player.value
         if (p != null) {
-            performLoad(p, uri, title)
+            performLoad(p, uri)
         }
     }
 
-    private fun performLoad(player: Player, uri: String, title: String?) {
+    private fun performLoad(player: Player, uri: String) {
         val mediaItem = MediaItem.Builder()
             .setMediaId(currentPlaybackKey ?: uri)
             .setUri(Uri.parse(uri))

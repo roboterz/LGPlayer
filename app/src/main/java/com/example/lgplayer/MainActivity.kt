@@ -74,37 +74,43 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
+                
+                LaunchedEffect(sharedPlayerViewModel) {
+                    currentPlayerViewModel = sharedPlayerViewModel
+                }
 
                 val backStack = remember { 
                     val initialRoute = handleIntent(intent) ?: Route.VideoList
                     mutableStateListOf<Route>(initialRoute) 
                 }
 
+                val openMedia: (Route.Player) -> Unit = { route ->
+                    // 1. Force exit PiP mode if active by bringing activity to front
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
+                        val exitIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
+                            action = Intent.ACTION_MAIN
+                            addCategory(Intent.CATEGORY_LAUNCHER)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        startActivity(exitIntent)
+                    }
+
+                    // 2. Load content
+                    sharedPlayerViewModel.load(route.videoUri, route.title)
+
+                    // 3. Update navigation
+                    if (backStack.lastOrNull() != route) {
+                        backStack.removeAll { it is Route.Player }
+                        backStack.add(route)
+                    }
+                }
+
                 // Handle new intents when activity is already running
                 DisposableEffect(Unit) {
                     val listener = androidx.core.util.Consumer<android.content.Intent> { newIntent ->
                         handleIntent(newIntent)?.let { route ->
-                            val playerRoute = route as? Route.Player
-                            
-                            // 1. Force exit PiP mode if active
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) {
-                                val exitIntent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                                    action = Intent.ACTION_MAIN
-                                    addCategory(Intent.CATEGORY_LAUNCHER)
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                                }
-                                startActivity(exitIntent)
-                            }
-
-                            // 2. Immediately tell the ViewModel to load the new content
-                            if (playerRoute != null) {
-                                sharedPlayerViewModel.load(playerRoute.videoUri, playerRoute.title)
-                            }
-
-                            // 3. Update the navigation stack
-                            if (backStack.lastOrNull() != route) {
-                                backStack.removeAll { it is Route.Player }
-                                backStack.add(route)
+                            if (route is Route.Player) {
+                                openMedia(route)
                             }
                         }
                     }
@@ -137,7 +143,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         ) {
-                            val viewModel: VideoListViewModel = viewModel(
+                            val videoListViewModel: VideoListViewModel = viewModel(
                                 factory = object : ViewModelProvider.Factory {
                                     @Suppress("UNCHECKED_CAST")
                                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -146,13 +152,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             VideoListScreen(
-                                viewModel = viewModel,
+                                viewModel = videoListViewModel,
                                 onVideoClick = { mediaId ->
-                                    val media = viewModel.mediaFiles.value.find { it.id == mediaId }
+                                    val media = videoListViewModel.mediaFiles.value.find { it.id == mediaId }
                                     media?.let {
-                                        val route = Route.Player(it.uri.toString(), it.name)
-                                        backStack.removeAll { r -> r is Route.Player }
-                                        backStack.add(route)
+                                        openMedia(Route.Player(it.uri.toString(), it.name))
                                     }
                                 }
                             )
@@ -160,18 +164,9 @@ class MainActivity : ComponentActivity() {
                         entry<Route.Player>(
                             metadata = ListDetailSceneStrategy.detailPane()
                         ) { route ->
-                            // Reactively load the media whenever the route changes
+                            // The content is loaded via openMedia or LaunchedEffect
                             LaunchedEffect(route) {
                                 sharedPlayerViewModel.load(route.videoUri, route.title)
-                            }
-
-                            DisposableEffect(sharedPlayerViewModel) {
-                                currentPlayerViewModel = sharedPlayerViewModel
-                                onDispose {
-                                    if (currentPlayerViewModel == sharedPlayerViewModel) {
-                                        currentPlayerViewModel = null
-                                    }
-                                }
                             }
 
                             val isPlaying by sharedPlayerViewModel.isPlaying.collectAsState()
@@ -193,7 +188,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (currentPlayerViewModel != null) {
+        if (currentPlayerViewModel != null && currentPlayerViewModel?.isPlaying?.value == true) {
             enterPip()
         }
     }
@@ -216,14 +211,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        unregisterReceiver(pipReceiver)
+        try {
+            unregisterReceiver(pipReceiver)
+        } catch (e: Exception) {}
     }
 
     private fun handleIntent(intent: android.content.Intent?): Route? {
         if (intent?.action == Intent.ACTION_VIEW) {
             val uri = intent.data
             if (uri != null) {
-                // Try to get the display name from the intent or URI
                 val displayName = intent.getStringExtra(Intent.EXTRA_TITLE)
                     ?: getFileNameFromUri(uri)
                 return Route.Player(uri.toString(), displayName)
@@ -240,16 +236,14 @@ class MainActivity : ComponentActivity() {
                         return cursor.getString(0)
                     }
                 }
-            } catch (e: Exception) {
-                // fallback to lastPathSegment
-            }
+            } catch (e: Exception) {}
         }
         return uri.lastPathSegment
     }
 
     private fun enterPip() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val isPlaying = currentPlayerViewModel?.player?.value?.isPlaying ?: false
+            val isPlaying = currentPlayerViewModel?.isPlaying?.value ?: false
             enterPictureInPictureMode(buildPipParams(isPlaying))
         }
     }

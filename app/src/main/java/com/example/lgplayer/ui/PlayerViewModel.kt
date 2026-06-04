@@ -28,6 +28,9 @@ class PlayerViewModel(
     private val _isBuffering = MutableStateFlow(false)
     val isBuffering: StateFlow<Boolean> = _isBuffering.asStateFlow()
 
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
     private var hasResumedProgress = false
 
     val player = ExoPlayer.Builder(context).build().apply {
@@ -36,6 +39,10 @@ class PlayerViewModel(
         playWhenReady = true
         
         addListener(object : Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _isPlaying.value = isPlaying
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isBuffering.value = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY && !hasResumedProgress) {

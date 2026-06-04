@@ -10,14 +10,17 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
@@ -36,6 +39,8 @@ fun PlayerScreen(
     val activity = context as? Activity
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val isBuffering by viewModel.isBuffering.collectAsState()
+    val player by viewModel.player.collectAsState()
+    val title by viewModel.displayTitle.collectAsState()
     
     // Brightness state (0.0 to 1.0)
     var brightness by remember { 
@@ -84,7 +89,7 @@ fun PlayerScreen(
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
-                    player = viewModel.player
+                    this.player = player
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
@@ -94,19 +99,32 @@ fun PlayerScreen(
                 }
             },
             update = { view ->
-                view.player = viewModel.player
+                view.player = player
                 view.useController = !isInPipMode
                 playerViewInstance = view
             },
             modifier = Modifier.fillMaxSize()
         )
 
-        if (isBuffering && !isInPipMode) {
+        if ((isBuffering || player == null) && !isInPipMode) {
             CircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(48.dp),
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (!isInPipMode && title != null) {
+            Text(
+                text = title,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

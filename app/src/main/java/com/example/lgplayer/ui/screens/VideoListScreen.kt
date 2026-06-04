@@ -35,9 +35,11 @@ fun VideoListScreen(
 
     val permissionState = rememberMultiplePermissionsState(permission)
     val videos by viewModel.mediaFiles.collectAsState()
+    val history by viewModel.history.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     var isSearchActive by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableIntStateOf(0) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(permissionState.allPermissionsGranted) {
@@ -48,35 +50,52 @@ fun VideoListScreen(
 
     Scaffold(
         topBar = {
-            if (isSearchActive) {
-                SearchTopBar(
-                    query = searchQuery,
-                    onQueryChange = { viewModel.updateSearchQuery(it) },
-                    onClose = {
-                        isSearchActive = false
-                        viewModel.updateSearchQuery("")
-                    }
-                )
-            } else {
-                LargeTopAppBar(
-                    title = { 
-                        Text(
-                            "LGPlayer",
-                            style = MaterialTheme.typography.headlineLarge
-                        ) 
-                    },
-                    actions = {
-                        IconButton(onClick = { isSearchActive = true }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search")
+            Column {
+                if (isSearchActive) {
+                    SearchTopBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.updateSearchQuery(it) },
+                        onClose = {
+                            isSearchActive = false
+                            viewModel.updateSearchQuery("")
                         }
-                    },
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                        titleContentColor = MaterialTheme.colorScheme.primary
                     )
-                )
+                } else {
+                    LargeTopAppBar(
+                        title = { 
+                            Text(
+                                "LGPlayer",
+                                style = MaterialTheme.typography.headlineLarge
+                            ) 
+                        },
+                        actions = {
+                            IconButton(onClick = { isSearchActive = true }) {
+                                Icon(Icons.Default.Search, contentDescription = "Search")
+                            }
+                        },
+                        scrollBehavior = scrollBehavior,
+                        colors = TopAppBarDefaults.largeTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.background,
+                            scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+                            titleContentColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+                
+                if (!isSearchActive) {
+                    TabRow(selectedTabIndex = selectedTab) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("All") }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("History") }
+                        )
+                    }
+                }
             }
         },
         modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
@@ -88,13 +107,15 @@ fun VideoListScreen(
             contentAlignment = Alignment.Center
         ) {
             if (permissionState.allPermissionsGranted) {
-                if (isLoading && videos.isEmpty()) {
+                val displayList = if (selectedTab == 0) videos else history
+                
+                if (isLoading && displayList.isEmpty()) {
                     CircularProgressIndicator()
-                } else if (videos.isEmpty()) {
-                    Text("No media files found")
+                } else if (displayList.isEmpty()) {
+                    Text(if (selectedTab == 0) "No media files found" else "No playback history")
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(videos, key = { it.id }) { media ->
+                        items(displayList, key = { it.id }) { media ->
                             VideoItem(
                                 media = media,
                                 onClick = { onVideoClick(media.id) }

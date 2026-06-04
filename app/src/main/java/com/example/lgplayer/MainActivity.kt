@@ -10,6 +10,7 @@ import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.Log
 import android.util.Rational
 import androidx.activity.ComponentActivity
@@ -48,9 +49,10 @@ class MainActivity : ComponentActivity() {
 
     private val pipReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            val player = currentPlayerViewModel?.player?.value
             when (intent.action) {
-                ACTION_PLAY -> currentPlayerViewModel?.player?.play()
-                ACTION_PAUSE -> currentPlayerViewModel?.player?.pause()
+                ACTION_PLAY -> player?.play()
+                ACTION_PAUSE -> player?.pause()
             }
         }
     }
@@ -112,7 +114,7 @@ class MainActivity : ComponentActivity() {
                                 factory = object : ViewModelProvider.Factory {
                                     @Suppress("UNCHECKED_CAST")
                                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                        return VideoListViewModel(repository) as T
+                                        return VideoListViewModel(applicationContext, repository) as T
                                     }
                                 }
                             )
@@ -121,7 +123,7 @@ class MainActivity : ComponentActivity() {
                                 onVideoClick = { mediaId ->
                                     val media = viewModel.mediaFiles.value.find { it.id == mediaId }
                                     media?.let {
-                                        val route = Route.Player(it.uri.toString())
+                                        val route = Route.Player(it.uri.toString(), it.name)
                                         backStack.removeAll { r -> r is Route.Player }
                                         backStack.add(route)
                                     }
@@ -132,14 +134,15 @@ class MainActivity : ComponentActivity() {
                             metadata = ListDetailSceneStrategy.detailPane()
                         ) { route ->
                             val playerViewModel: PlayerViewModel = viewModel(
-                                key = route.videoUri,
+                                key = route.videoUri, // URI is unique enough
                                 factory = object : ViewModelProvider.Factory {
                                     @Suppress("UNCHECKED_CAST")
                                     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                                        return PlayerViewModel(applicationContext, route.videoUri) as T
+                                        return PlayerViewModel(applicationContext, route.videoUri, route.title) as T
                                     }
                                 }
                             )
+                            
                             DisposableEffect(playerViewModel) {
                                 currentPlayerViewModel = playerViewModel
                                 onDispose {
@@ -148,6 +151,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
+
                             val isPlaying by playerViewModel.isPlaying.collectAsState()
                             LaunchedEffect(isPlaying) {
                                 if (isInPipMode) {
@@ -197,15 +201,33 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == Intent.ACTION_VIEW) {
             val uri = intent.data
             if (uri != null) {
-                return Route.Player(uri.toString())
+                // Try to get the display name from the intent or URI
+                val displayName = intent.getStringExtra(Intent.EXTRA_TITLE)
+                    ?: getFileNameFromUri(uri)
+                return Route.Player(uri.toString(), displayName)
             }
         }
         return null
     }
 
+    private fun getFileNameFromUri(uri: Uri): String? {
+        if (uri.scheme == "content") {
+            try {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        return cursor.getString(0)
+                    }
+                }
+            } catch (e: Exception) {
+                // fallback to lastPathSegment
+            }
+        }
+        return uri.lastPathSegment
+    }
+
     private fun enterPip() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val isPlaying = currentPlayerViewModel?.player?.isPlaying ?: false
+            val isPlaying = currentPlayerViewModel?.player?.value?.isPlaying ?: false
             enterPictureInPictureMode(buildPipParams(isPlaying))
         }
     }

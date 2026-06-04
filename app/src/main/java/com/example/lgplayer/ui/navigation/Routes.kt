@@ -8,5 +8,8 @@ sealed interface Route {
     data object VideoList : Route
 
     @Serializable
-    data class Player(val videoUri: String) : Route
+    data class Player(
+        val videoUri: String,
+        val title: String? = null
+    ) : Route
 }

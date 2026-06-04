@@ -1,7 +1,12 @@
 package com.example.lgplayer
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -39,6 +44,17 @@ import com.example.lgplayer.ui.screens.VideoListScreen
 import com.example.lgplayer.ui.theme.LgplayerTheme
 
 class MainActivity : ComponentActivity() {
+    private var currentPlayerViewModel: PlayerViewModel? = null
+
+    private val pipReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                ACTION_PLAY -> currentPlayerViewModel?.player?.play()
+                ACTION_PAUSE -> currentPlayerViewModel?.player?.pause()
+            }
+        }
+    }
+
     @OptIn(ExperimentalMaterial3AdaptiveApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,6 +140,20 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
+                            DisposableEffect(playerViewModel) {
+                                currentPlayerViewModel = playerViewModel
+                                onDispose {
+                                    if (currentPlayerViewModel == playerViewModel) {
+                                        currentPlayerViewModel = null
+                                    }
+                                }
+                            }
+                            val isPlaying by playerViewModel.isPlaying.collectAsState()
+                            LaunchedEffect(isPlaying) {
+                                if (isInPipMode) {
+                                    updatePipParams(isPlaying)
+                                }
+                            }
                             PlayerScreen(
                                 viewModel = playerViewModel,
                                 isInPipMode = isInPipMode
@@ -137,7 +167,30 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        enterPip()
+        if (currentPlayerViewModel != null) {
+            enterPip()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val filter = IntentFilter().apply {
+                addAction(ACTION_PLAY)
+                addAction(ACTION_PAUSE)
+            }
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                pipReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(pipReceiver)
     }
 
     private fun handleIntent(intent: android.content.Intent?): Route? {
@@ -152,11 +205,59 @@ class MainActivity : ComponentActivity() {
 
     private fun enterPip() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val params = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build()
-            enterPictureInPictureMode(params)
+            val isPlaying = currentPlayerViewModel?.player?.isPlaying ?: false
+            enterPictureInPictureMode(buildPipParams(isPlaying))
         }
+    }
+
+    private fun updatePipParams(isPlaying: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setPictureInPictureParams(buildPipParams(isPlaying))
+        }
+    }
+
+    private fun buildPipParams(isPlaying: Boolean): PictureInPictureParams {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .setActions(
+                    listOf(
+                        if (isPlaying) {
+                            android.app.RemoteAction(
+                                Icon.createWithResource(this, android.R.drawable.ic_media_pause),
+                                "Pause",
+                                "Pause",
+                                PendingIntent.getBroadcast(
+                                    this, REQUEST_PAUSE,
+                                    Intent(ACTION_PAUSE).setPackage(packageName),
+                                    PendingIntent.FLAG_IMMUTABLE
+                                )
+                            )
+                        } else {
+                            android.app.RemoteAction(
+                                Icon.createWithResource(this, android.R.drawable.ic_media_play),
+                                "Play",
+                                "Play",
+                                PendingIntent.getBroadcast(
+                                    this, REQUEST_PLAY,
+                                    Intent(ACTION_PLAY).setPackage(packageName),
+                                    PendingIntent.FLAG_IMMUTABLE
+                                )
+                            )
+                        }
+                    )
+                )
+                .build()
+        } else {
+            error("PiP not supported")
+        }
+    }
+
+    companion object {
+        private const val ACTION_PLAY = "com.example.lgplayer.ACTION_PLAY"
+        private const val ACTION_PAUSE = "com.example.lgplayer.ACTION_PAUSE"
+        private const val REQUEST_PLAY = 1
+        private const val REQUEST_PAUSE = 2
     }
 }
 

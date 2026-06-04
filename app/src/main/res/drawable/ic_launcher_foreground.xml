@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Modern Sleek Play Button -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,38 L42,70 L70,54 Z" />
+
+    <!-- PiP (Picture-in-Picture) Accent -->
+    <!-- Small window frame offset to the bottom right of the main action -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,60 H82 V72 H66 V60 Z M68,62 V70 H80 V62 H68 Z"
+        android:fillType="evenOdd" />
+
+</vector>

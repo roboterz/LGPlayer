@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.components
+package com.aerolite.lgplayer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,8 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.lgplayer.data.MediaFile
-import com.example.lgplayer.data.MediaType
+import com.aerolite.lgplayer.data.MediaFile
+import com.aerolite.lgplayer.data.MediaType
 
 @Composable
 fun VideoItem(

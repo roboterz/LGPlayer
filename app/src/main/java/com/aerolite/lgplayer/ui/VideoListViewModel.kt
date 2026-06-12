@@ -1,16 +1,16 @@
-package com.example.lgplayer.ui
+package com.aerolite.lgplayer.ui
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.lgplayer.data.MediaFile
-import com.example.lgplayer.data.MediaRepository
-import com.example.lgplayer.data.MediaType
-import com.example.lgplayer.data.database.LGPlayerDatabase
-import com.example.lgplayer.data.database.PlaybackProgress
-import com.example.lgplayer.data.database.PlaylistItem
+import com.aerolite.lgplayer.data.MediaFile
+import com.aerolite.lgplayer.data.MediaRepository
+import com.aerolite.lgplayer.data.MediaType
+import com.aerolite.lgplayer.data.database.LGPlayerDatabase
+import com.aerolite.lgplayer.data.database.PlaybackProgress
+import com.aerolite.lgplayer.data.database.PlaylistItem
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

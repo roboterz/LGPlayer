@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui
+package com.aerolite.lgplayer.ui
 
 import android.app.Application
 import android.content.ComponentName
@@ -14,9 +14,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.example.lgplayer.PlaybackService
-import com.example.lgplayer.data.database.LGPlayerDatabase
-import com.example.lgplayer.data.database.PlaybackProgress
+import com.aerolite.lgplayer.PlaybackService
+import com.aerolite.lgplayer.data.database.LGPlayerDatabase
+import com.aerolite.lgplayer.data.database.PlaybackProgress
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.*
@@ -171,7 +171,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val duration = player.duration
         if (duration > 0) {
             val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
-                com.example.lgplayer.data.MediaType.AUDIO else com.example.lgplayer.data.MediaType.VIDEO
+                com.aerolite.lgplayer.data.MediaType.AUDIO else com.aerolite.lgplayer.data.MediaType.VIDEO
             
             playbackDao.saveProgress(
                 PlaybackProgress(
@@ -194,7 +194,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val duration = p.duration
                 if (duration > 0) {
                     val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
-                        com.example.lgplayer.data.MediaType.AUDIO else com.example.lgplayer.data.MediaType.VIDEO
+                        com.aerolite.lgplayer.data.MediaType.AUDIO else com.aerolite.lgplayer.data.MediaType.VIDEO
                     
                     val progress = PlaybackProgress(
                         mediaUri = key,

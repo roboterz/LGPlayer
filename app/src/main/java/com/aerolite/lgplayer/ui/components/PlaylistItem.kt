@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.components
+package com.aerolite.lgplayer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,8 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.example.lgplayer.data.MediaType
-import com.example.lgplayer.data.database.PlaylistItem
+import com.aerolite.lgplayer.data.MediaType
+import com.aerolite.lgplayer.data.database.PlaylistItem
 import android.net.Uri
 
 @Composable

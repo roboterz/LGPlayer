@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.screens
+package com.aerolite.lgplayer.ui.screens
 
 import android.Manifest
 import android.os.Build
@@ -18,8 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import com.example.lgplayer.ui.VideoListViewModel
-import com.example.lgplayer.ui.components.PlaylistItemView
+import com.aerolite.lgplayer.ui.VideoListViewModel
+import com.aerolite.lgplayer.ui.components.PlaylistItemView
 import com.google.accompanist.permissions.*
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)

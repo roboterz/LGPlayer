@@ -1,15 +1,15 @@
-package com.example.lgplayer
+package com.aerolite.lgplayer
 
 import org.junit.Test
 
 import org.junit.Assert.*
 
 /**
- * Example local unit test, which will execute on the development machine (host).
+ * aerolite local unit test, which will execute on the development machine (host).
  *
  * See [testing documentation](http://d.android.com/tools/testing).
  */
-class ExampleUnitTest {
+class aeroliteUnitTest {
     @Test
     fun addition_isCorrect() {
         assertEquals(4, 2 + 2)

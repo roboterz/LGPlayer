@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.theme
+package com.aerolite.lgplayer.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

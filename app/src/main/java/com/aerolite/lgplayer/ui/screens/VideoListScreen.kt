@@ -141,13 +141,9 @@ fun VideoListScreen(
                             PlaylistItemView(
                                 item = item,
                                 onClick = { onVideoClick(item.mediaUri, item.name) },
-                                onRemove = { 
-                                    if (selectedTab == 0) {
-                                        viewModel.removeFromPlaylist(item)
-                                    } else {
-                                        // Option to clear history if needed, for now just disable remove or map to delete progress
-                                    }
-                                }
+                                onRemove = if (selectedTab == 0) {
+                                    { viewModel.removeFromPlaylist(item) }
+                                } else null
                             )
                         }
                     }

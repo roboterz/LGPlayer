@@ -36,7 +36,7 @@ class VideoListViewModel(
     val history: StateFlow<List<PlaylistItem>> = _historyProgress.map { progressList ->
         progressList.map { progress ->
             PlaylistItem(
-                mediaUri = progress.mediaUri, // This is actually the fingerprint
+                mediaUri = progress.originalUri, // Use the real URI for playback
                 name = progress.name,
                 duration = progress.duration,
                 size = 0, // Not stored in progress

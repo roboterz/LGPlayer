@@ -26,7 +26,7 @@ import android.net.Uri
 fun PlaylistItemView(
     item: PlaylistItem,
     onClick: () -> Unit,
-    onRemove: () -> Unit,
+    onRemove: (() -> Unit)? = null, // Make remove optional
     modifier: Modifier = Modifier
 ) {
     ListItem(
@@ -42,13 +42,15 @@ fun PlaylistItemView(
                 overflow = TextOverflow.Ellipsis
             )
         },
-        trailingContent = {
-            IconButton(onClick = onRemove) {
-                Icon(
-                    imageVector = Icons.Rounded.Delete,
-                    contentDescription = "Remove from playlist",
-                    tint = MaterialTheme.colorScheme.error
-                )
+        trailingContent = onRemove?.let {
+            {
+                IconButton(onClick = it) {
+                    Icon(
+                        imageVector = Icons.Rounded.Delete,
+                        contentDescription = "Remove",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         },
         leadingContent = {

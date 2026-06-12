@@ -169,13 +169,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun saveProgress(player: Player, key: String) {
         val currentPosition = player.currentPosition
         val duration = player.duration
-        if (duration > 0) {
-            val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
+        val uri = currentUri
+        if (duration > 0 && uri != null) {
+            val type = if (uri.endsWith(".mp3") == true || uri.endsWith(".m4a") == true) 
                 com.aerolite.lgplayer.data.MediaType.AUDIO else com.aerolite.lgplayer.data.MediaType.VIDEO
             
             playbackDao.saveProgress(
                 PlaybackProgress(
                     mediaUri = key,
+                    originalUri = uri,
                     name = _displayTitle.value,
                     type = type,
                     position = currentPosition,
@@ -189,15 +191,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         progressJob?.cancel()
         _player.value?.let { p ->
             val key = currentPlaybackKey
-            if (key != null) {
+            val uri = currentUri
+            if (key != null && uri != null) {
                 val currentPosition = p.currentPosition
                 val duration = p.duration
                 if (duration > 0) {
-                    val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
+                    val type = if (uri.endsWith(".mp3") == true || uri.endsWith(".m4a") == true) 
                         com.aerolite.lgplayer.data.MediaType.AUDIO else com.aerolite.lgplayer.data.MediaType.VIDEO
                     
                     val progress = PlaybackProgress(
                         mediaUri = key,
+                        originalUri = uri,
                         name = _displayTitle.value,
                         type = type,
                         position = currentPosition,

@@ -1,13 +1,16 @@
-package com.example.lgplayer.data.database
+package com.aerolite.lgplayer.data.database
 
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
-@Database(entities = [PlaybackProgress::class], version = 1, exportSchema = false)
+@Database(entities = [PlaybackProgress::class, PlaylistItem::class], version = 2, exportSchema = false)
+@TypeConverters(MediaTypeConverter::class)
 abstract class LGPlayerDatabase : RoomDatabase() {
     abstract fun playbackDao(): PlaybackDao
+    abstract fun playlistDao(): PlaylistDao
 
     companion object {
         @Volatile
@@ -19,7 +22,9 @@ abstract class LGPlayerDatabase : RoomDatabase() {
                     context.applicationContext,
                     LGPlayerDatabase::class.java,
                     "lgplayer_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

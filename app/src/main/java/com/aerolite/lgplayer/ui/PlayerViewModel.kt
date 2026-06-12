@@ -170,9 +170,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val currentPosition = player.currentPosition
         val duration = player.duration
         if (duration > 0) {
+            val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
+                com.example.lgplayer.data.MediaType.AUDIO else com.example.lgplayer.data.MediaType.VIDEO
+            
             playbackDao.saveProgress(
                 PlaybackProgress(
                     mediaUri = key,
+                    name = _displayTitle.value,
+                    type = type,
                     position = currentPosition,
                     duration = duration
                 )
@@ -188,8 +193,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val currentPosition = p.currentPosition
                 val duration = p.duration
                 if (duration > 0) {
+                    val type = if (currentUri?.endsWith(".mp3") == true || currentUri?.endsWith(".m4a") == true) 
+                        com.example.lgplayer.data.MediaType.AUDIO else com.example.lgplayer.data.MediaType.VIDEO
+                    
                     val progress = PlaybackProgress(
                         mediaUri = key,
+                        name = _displayTitle.value,
+                        type = type,
                         position = currentPosition,
                         duration = duration
                     )

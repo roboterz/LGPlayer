@@ -1,4 +1,4 @@
-package com.example.lgplayer
+package com.aerolite.lgplayer
 
 import android.app.Application
 import coil.ImageLoader

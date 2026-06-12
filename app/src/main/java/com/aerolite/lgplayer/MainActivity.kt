@@ -1,4 +1,4 @@
-package com.example.lgplayer
+package com.aerolite.lgplayer
 
 import android.app.PendingIntent
 import android.app.PictureInPictureParams
@@ -36,13 +36,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.example.lgplayer.data.MediaRepository
-import com.example.lgplayer.ui.PlayerViewModel
-import com.example.lgplayer.ui.VideoListViewModel
-import com.example.lgplayer.ui.navigation.Route
-import com.example.lgplayer.ui.screens.PlayerScreen
-import com.example.lgplayer.ui.screens.VideoListScreen
-import com.example.lgplayer.ui.theme.LgplayerTheme
+import com.aerolite.lgplayer.data.MediaRepository
+import com.aerolite.lgplayer.ui.PlayerViewModel
+import com.aerolite.lgplayer.ui.VideoListViewModel
+import com.aerolite.lgplayer.ui.navigation.Route
+import com.aerolite.lgplayer.ui.screens.PlayerScreen
+import com.aerolite.lgplayer.ui.screens.VideoListScreen
+import com.aerolite.lgplayer.ui.theme.LgplayerTheme
 
 class MainActivity : ComponentActivity() {
     private var currentPlayerViewModel: PlayerViewModel? = null
@@ -153,11 +153,8 @@ class MainActivity : ComponentActivity() {
                             )
                             VideoListScreen(
                                 viewModel = videoListViewModel,
-                                onVideoClick = { mediaId ->
-                                    val media = videoListViewModel.mediaFiles.value.find { it.id == mediaId }
-                                    media?.let {
-                                        openMedia(Route.Player(it.uri.toString(), it.name))
-                                    }
+                                onVideoClick = { uri, name ->
+                                    openMedia(Route.Player(uri, name))
                                 }
                             )
                         }
@@ -292,8 +289,8 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val ACTION_PLAY = "com.example.lgplayer.ACTION_PLAY"
-        private const val ACTION_PAUSE = "com.example.lgplayer.ACTION_PAUSE"
+        private const val ACTION_PLAY = "com.aerolite.lgplayer.ACTION_PLAY"
+        private const val ACTION_PAUSE = "com.aerolite.lgplayer.ACTION_PAUSE"
         private const val REQUEST_PLAY = 1
         private const val REQUEST_PAUSE = 2
     }

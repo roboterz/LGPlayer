@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.lgplayer"
+    namespace = "com.aerolite.lgplayer"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.lgplayer"
+        applicationId = "com.aerolite.lgplayer"
         minSdk = 29
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.001"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -78,7 +78,6 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.retrofit)
     testImplementation(libs.androidx.core)
-    testImplementation(libs.androidx.junit)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))

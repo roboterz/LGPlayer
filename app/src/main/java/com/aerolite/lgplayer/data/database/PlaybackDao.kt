@@ -1,4 +1,4 @@
-package com.example.lgplayer.data.database
+package com.aerolite.lgplayer.data.database
 
 import androidx.room.Dao
 import androidx.room.Insert

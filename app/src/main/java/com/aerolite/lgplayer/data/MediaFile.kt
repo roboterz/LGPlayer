@@ -1,4 +1,4 @@
-package com.example.lgplayer.data
+package com.aerolite.lgplayer.data
 
 import android.net.Uri
 

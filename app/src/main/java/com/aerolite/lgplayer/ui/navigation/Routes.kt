@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.navigation
+package com.aerolite.lgplayer.ui.navigation
 
 import kotlinx.serialization.Serializable
 

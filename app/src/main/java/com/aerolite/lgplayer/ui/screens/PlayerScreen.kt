@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.screens
+package com.aerolite.lgplayer.ui.screens
 
 import android.app.Activity
 import android.content.Context
@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
-import com.example.lgplayer.ui.PlayerViewModel
+import com.aerolite.lgplayer.ui.PlayerViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.annotation.OptIn
 

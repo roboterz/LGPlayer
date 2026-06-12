@@ -1,4 +1,4 @@
-package com.example.lgplayer.ui.theme
+package com.aerolite.lgplayer.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

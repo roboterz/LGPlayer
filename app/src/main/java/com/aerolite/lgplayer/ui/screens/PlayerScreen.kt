@@ -7,10 +7,7 @@ import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +24,9 @@ import androidx.media3.ui.PlayerView
 import com.aerolite.lgplayer.ui.PlayerViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.annotation.OptIn
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -41,6 +41,25 @@ fun PlayerScreen(
     val isBuffering by viewModel.isBuffering.collectAsState()
     val player by viewModel.player.collectAsState()
     val title by viewModel.displayTitle.collectAsState()
+
+    // Manage system bars visibility for immersive playback
+    DisposableEffect(isInPipMode) {
+        val window = activity?.window
+        if (window != null) {
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            if (!isInPipMode) {
+                insetsController.hide(WindowInsetsCompat.Type.systemBars())
+                insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        }
+        onDispose {
+            val window = activity?.window
+            if (window != null) {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
     
     // Brightness state (0.0 to 1.0)
     var brightness by remember { 
@@ -60,30 +79,48 @@ fun PlayerScreen(
             )
         }
         .pointerInput(Unit) {
-            detectVerticalDragGestures { change, dragAmount ->
-                change.consume()
-                val isLeftSide = change.position.x < size.width / 2
-                if (isLeftSide) {
-                    // Brightness control
-                    activity?.let { act ->
-                        val currentBrightness = if (brightness < 0) 0.5f else brightness
-                        val dragDelta = if (size.height > 0) dragAmount / size.height else 0f
-                        val newBrightness = (currentBrightness - dragDelta).coerceIn(0f, 1f)
-                        brightness = newBrightness
-                        val lp = act.window.attributes
-                        lp.screenBrightness = newBrightness
-                        act.window.attributes = lp
+            var startVolume = 0
+            var startBrightness = 0f
+            var totalDragY = 0f
+
+            detectVerticalDragGestures(
+                onDragStart = {
+                    startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    startBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
+                    if (startBrightness < 0) startBrightness = 0.5f
+                    totalDragY = 0f
+                },
+                onVerticalDrag = { change, dragAmount ->
+                    change.consume()
+                    // 累计滑动位移（向上滑 dragAmount 为负，我们取负值使其向上为正）
+                    totalDragY -= dragAmount
+                    val isLeftSide = change.position.x < size.width / 2
+                    
+                    // 计算位移相对于屏幕高度的比例
+                    val dragRatio = if (size.height > 0) totalDragY / size.height else 0f
+                    
+                    if (isLeftSide) {
+                        // 亮度控制 (0.0 - 1.0)
+                        activity?.let { act ->
+                            val newBrightness = (startBrightness + dragRatio).coerceIn(0f, 1f)
+                            brightness = newBrightness
+                            val lp = act.window.attributes
+                            lp.screenBrightness = newBrightness
+                            act.window.attributes = lp
+                        }
+                    } else {
+                        // 音量控制 (基于最大音量级数)
+                        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val volumeDelta = (dragRatio * maxVol).toInt()
+                        val newVol = (startVolume + volumeDelta).coerceIn(0, maxVol)
+                        audioManager.setStreamVolume(
+                            AudioManager.STREAM_MUSIC,
+                            newVol,
+                            AudioManager.FLAG_SHOW_UI
+                        )
                     }
-                } else {
-                    // Volume control
-                    val direction = if (dragAmount > 0) AudioManager.ADJUST_LOWER else AudioManager.ADJUST_RAISE
-                    audioManager.adjustStreamVolume(
-                        AudioManager.STREAM_MUSIC,
-                        direction,
-                        AudioManager.FLAG_SHOW_UI
-                    )
                 }
-            }
+            )
         }
     ) {
         AndroidView(
@@ -103,7 +140,9 @@ fun PlayerScreen(
                 view.useController = !isInPipMode
                 playerViewInstance = view
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (isInPipMode) Modifier else Modifier.safeDrawingPadding())
         )
 
         if ((isBuffering || player == null) && !isInPipMode) {
@@ -120,7 +159,8 @@ fun PlayerScreen(
                 text = title,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 48.dp, start = 16.dp, end = 16.dp),
+                    .safeDrawingPadding()
+                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
                 color = Color.White,
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,

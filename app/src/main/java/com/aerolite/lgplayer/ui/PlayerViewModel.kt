@@ -42,6 +42,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _displayTitle = MutableStateFlow("Loading...")
     val displayTitle: StateFlow<String> = _displayTitle.asStateFlow()
 
+    private val _playbackSpeed = MutableStateFlow(1.0f)
+    val playbackSpeed: StateFlow<Float> = _playbackSpeed.asStateFlow()
+
     private var currentUri: String? = null
     private var currentPlaybackKey: String? = null
     private var hasResumedProgress = false
@@ -83,6 +86,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val controller = controllerFuture?.get() ?: return@addListener
                 _player.value = controller
                 controller.addListener(playerListener)
+                controller.setPlaybackSpeed(_playbackSpeed.value)
                 currentUri?.let { uri -> 
                     performLoad(controller, uri) 
                 }
@@ -105,6 +109,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (p != null) {
             performLoad(p, uri)
         }
+    }
+
+    fun setPlaybackSpeed(speed: Float) {
+        _playbackSpeed.value = speed
+        _player.value?.setPlaybackSpeed(speed)
     }
 
     private fun performLoad(player: Player, uri: String) {

@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +39,9 @@ fun PlayerScreen(
     val isBuffering by viewModel.isBuffering.collectAsState()
     val player by viewModel.player.collectAsState()
     val title by viewModel.displayTitle.collectAsState()
+    val currentSpeed by viewModel.playbackSpeed.collectAsState()
+    var showSpeedMenu by remember { mutableStateOf(false) }
+    val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f, 2.5f, 3.0f)
     
     // Brightness state (0.0 to 1.0)
     var brightness by remember { 
@@ -126,6 +127,38 @@ fun PlayerScreen(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+
+        if (!isInPipMode) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 40.dp, end = 8.dp)
+            ) {
+                TextButton(
+                    onClick = { showSpeedMenu = true }
+                ) {
+                    Text(
+                        text = "${currentSpeed}x",
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                DropdownMenu(
+                    expanded = showSpeedMenu,
+                    onDismissRequest = { showSpeedMenu = false }
+                ) {
+                    speeds.forEach { speed ->
+                        DropdownMenuItem(
+                            text = { Text("${speed}x") },
+                            onClick = {
+                                viewModel.setPlaybackSpeed(speed)
+                                showSpeedMenu = false
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }

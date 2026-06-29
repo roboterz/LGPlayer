@@ -52,6 +52,9 @@ fun VideoListScreen(
     )
 
     LaunchedEffect(Unit) {
+        if (!permissionState.allPermissionsGranted) {
+            permissionState.launchMultiplePermissionRequest()
+        }
         viewModel.loadData()
     }
 

@@ -56,6 +56,16 @@ class VideoListViewModel(
 
     fun addToPlaylist(uri: Uri) {
         viewModelScope.launch {
+            // Take persistable permission to ensure we can play this file after app restart
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                // Not a document URI or permission cannot be persisted
+            }
+
             val name = getFileName(context, uri)
             val size = getFileSize(context, uri)
             val type = if (name.lowercase().let { it.endsWith(".mp3") || it.endsWith(".m4a") || it.endsWith(".wav") }) 

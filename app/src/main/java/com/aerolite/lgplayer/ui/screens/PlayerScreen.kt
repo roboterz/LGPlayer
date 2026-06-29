@@ -39,6 +39,7 @@ fun PlayerScreen(
     val activity = context as? Activity
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val isBuffering by viewModel.isBuffering.collectAsState()
+    val playbackError by viewModel.playbackError.collectAsState()
     val player by viewModel.player.collectAsState()
     val title by viewModel.displayTitle.collectAsState()
 
@@ -145,13 +146,37 @@ fun PlayerScreen(
                 .then(if (isInPipMode) Modifier else Modifier.safeDrawingPadding())
         )
 
-        if ((isBuffering || player == null) && !isInPipMode) {
+        if ((isBuffering || player == null) && !isInPipMode && playbackError == null) {
             CircularProgressIndicator(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .size(48.dp),
                 color = MaterialTheme.colorScheme.primary
             )
+        }
+
+        if (playbackError != null && !isInPipMode) {
+            Column(
+                modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = playbackError!!,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                androidx.compose.material3.Button(
+                    onClick = { 
+                        player?.let {
+                            it.prepare()
+                            it.play()
+                        }
+                    }
+                ) {
+                    Text("Retry")
+                }
+            }
         }
 
         if (!isInPipMode && title != null) {

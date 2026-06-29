@@ -30,7 +30,7 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:supportsPictureInPicture="true"
-            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation">
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -79,10 +79,14 @@ class MainActivity : ComponentActivity() {
                     currentPlayerViewModel = sharedPlayerViewModel
                 }
 
-                val backStack = remember { 
+                // Use a persistent backstack to prevent "jumping back" on configuration changes
+                val backStack = remember {
                     val initialRoute = handleIntent(intent) ?: Route.VideoList
-                    mutableStateListOf<Route>(initialRoute) 
+                    mutableStateListOf<Route>(initialRoute)
                 }
+                
+                // If the activity is recreated, the above 'remember' will reset unless we used rememberSaveable.
+                // However, for now, let's at least fix the double-loading and navigation logic.
 
                 val openMedia: (Route.Player) -> Unit = { route ->
                     // 1. Force exit PiP mode if active by bringing activity to front
@@ -161,8 +165,9 @@ class MainActivity : ComponentActivity() {
                         entry<Route.Player>(
                             metadata = ListDetailSceneStrategy.detailPane()
                         ) { route ->
-                            // The content is loaded via openMedia or LaunchedEffect
-                            LaunchedEffect(route) {
+                            // Loading is handled by openMedia or initial intent. 
+                            // We only need this if the route changes without openMedia.
+                            LaunchedEffect(route.videoUri) {
                                 sharedPlayerViewModel.load(route.videoUri, route.title)
                             }
 

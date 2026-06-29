@@ -36,6 +36,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    private val _playbackError = MutableStateFlow<String?>(null)
+    val playbackError: StateFlow<String?> = _playbackError.asStateFlow()
+
     private val _player = MutableStateFlow<Player?>(null)
     val player: StateFlow<Player?> = _player.asStateFlow()
 
@@ -50,10 +53,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _isPlaying.value = isPlaying
+            if (isPlaying) {
+                _playbackError.value = null
+            }
         }
 
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
             mediaMetadata.title?.let { _displayTitle.value = it.toString() }
+        }
+
+        override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            _playbackError.value = "Playback error: ${error.localizedMessage ?: "Unknown error"}"
+            _isPlaying.value = false
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -95,15 +106,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun load(uri: String, title: String?) {
-        // Remove the return check to force reload/resume when requested
+        // If it's the same URI and we're already playing/buffering, don't interrupt.
+        // But if there was an error or it's idle, allow reloading.
+        val currentPlayer = _player.value
+        if (currentUri == uri && currentPlayer != null && 
+            currentPlayer.playbackState != Player.STATE_IDLE && 
+            currentPlayer.playerError == null) {
+            return
+        }
+        
         currentUri = uri
+        _playbackError.value = null
         _displayTitle.value = title ?: getFileName(getApplication(), Uri.parse(uri))
         currentPlaybackKey = getFileFingerprint(getApplication(), Uri.parse(uri))
         hasResumedProgress = false
         
-        val p = _player.value
-        if (p != null) {
-            performLoad(p, uri)
+        if (currentPlayer != null) {
+            performLoad(currentPlayer, uri)
         }
     }
 
@@ -121,7 +140,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         player.setMediaItem(mediaItem, true)
         player.prepare()
         player.playWhenReady = true
-        player.play()
     }
 
     private fun getFileFingerprint(context: Context, uri: Uri): String {

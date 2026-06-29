@@ -125,9 +125,20 @@ class MainActivity : ComponentActivity() {
                 val isInPipMode = rememberIsInPipMode()
 
                 val windowAdaptiveInfo = currentWindowAdaptiveInfo()
-                val directive = remember(windowAdaptiveInfo) {
-                    calculatePaneScaffoldDirective(windowAdaptiveInfo)
-                        .copy(horizontalPartitionSpacerSize = 0.dp)
+                // Check if player is the active destination
+                val isPlayerActive = backStack.lastOrNull() is Route.Player
+                
+                val directive = remember(windowAdaptiveInfo, isPlayerActive) {
+                    val baseDirective = calculatePaneScaffoldDirective(windowAdaptiveInfo)
+                    if (isPlayerActive) {
+                        // Force single pane mode when playing to hide the playlist
+                        baseDirective.copy(
+                            maxHorizontalPartitions = 1,
+                            horizontalPartitionSpacerSize = 0.dp
+                        )
+                    } else {
+                        baseDirective.copy(horizontalPartitionSpacerSize = 0.dp)
+                    }
                 }
                 
                 val listDetailStrategy = rememberListDetailSceneStrategy<Route>(directive = directive)

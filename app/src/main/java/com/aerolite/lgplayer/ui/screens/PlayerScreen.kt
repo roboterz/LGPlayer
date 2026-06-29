@@ -8,9 +8,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AspectRatio
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +26,7 @@ import androidx.media3.ui.PlayerView
 import com.aerolite.lgplayer.ui.PlayerViewModel
 import androidx.media3.common.util.UnstableApi
 import androidx.annotation.OptIn
+import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -42,6 +45,28 @@ fun PlayerScreen(
     val playbackError by viewModel.playbackError.collectAsState()
     val player by viewModel.player.collectAsState()
     val title by viewModel.displayTitle.collectAsState()
+    val resizeMode by viewModel.resizeMode.collectAsState()
+
+    var isLandscape by remember { 
+        mutableStateOf(context.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE)
+    }
+
+    // Toggle orientation function
+    val toggleOrientation = {
+        val newOrientation = if (isLandscape) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+        activity?.requestedOrientation = newOrientation
+        // isLandscape will be updated via configuration change automatically
+    }
+
+    // Update isLandscape when configuration changes
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    LaunchedEffect(configuration.orientation) {
+        isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    }
 
     // Manage system bars visibility for immersive playback
     DisposableEffect(isInPipMode) {
@@ -133,17 +158,17 @@ fun PlayerScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     useController = !isInPipMode
+                    this.resizeMode = resizeMode
                     playerViewInstance = this
                 }
             },
             update = { view ->
                 view.player = player
                 view.useController = !isInPipMode
+                view.resizeMode = resizeMode
                 playerViewInstance = view
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (isInPipMode) Modifier else Modifier.safeDrawingPadding())
+            modifier = Modifier.fillMaxSize()
         )
 
         if ((isBuffering || player == null) && !isInPipMode && playbackError == null) {
@@ -166,7 +191,7 @@ fun PlayerScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                androidx.compose.material3.Button(
+                Button(
                     onClick = { 
                         player?.let {
                             it.prepare()
@@ -180,17 +205,55 @@ fun PlayerScreen(
         }
 
         if (!isInPipMode && title != null) {
-            Text(
-                text = title,
+            Row(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .safeDrawingPadding()
-                    .padding(top = 16.dp, start = 16.dp, end = 16.dp),
-                color = Color.White,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { (activity as? ComponentActivity)?.onBackPressedDispatcher?.onBackPressed() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color.White
+                    )
+                }
+
+                Text(
+                    text = title,
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Row {
+                    IconButton(
+                        onClick = { viewModel.toggleResizeMode() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AspectRatio,
+                            contentDescription = "Resize Mode",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { toggleOrientation() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ScreenRotation,
+                            contentDescription = "Rotate",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }

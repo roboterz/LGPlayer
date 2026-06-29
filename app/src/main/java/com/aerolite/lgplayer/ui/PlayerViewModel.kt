@@ -45,6 +45,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _displayTitle = MutableStateFlow("Loading...")
     val displayTitle: StateFlow<String> = _displayTitle.asStateFlow()
 
+    private val _resizeMode = MutableStateFlow(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT)
+    val resizeMode: StateFlow<Int> = _resizeMode.asStateFlow()
+
     private var currentUri: String? = null
     private var currentPlaybackKey: String? = null
     private var hasResumedProgress = false
@@ -103,6 +106,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }, MoreExecutors.directExecutor())
 
         startProgressSaving()
+    }
+
+    fun toggleResizeMode() {
+        _resizeMode.value = when (_resizeMode.value) {
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL
+            else -> androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
     }
 
     fun load(uri: String, title: String?) {

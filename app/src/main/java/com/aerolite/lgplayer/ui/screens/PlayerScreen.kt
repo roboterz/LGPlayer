@@ -108,41 +108,57 @@ fun PlayerScreen(
             var startVolume = 0
             var startBrightness = 0f
             var totalDragY = 0f
+            var dragType = 0 // 0: None, 1: Brightness, 2: Volume
 
             detectVerticalDragGestures(
-                onDragStart = {
-                    startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-                    startBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
-                    if (startBrightness < 0) startBrightness = 0.5f
-                    totalDragY = 0f
+                onDragStart = { offset ->
+                    val width = size.width
+                    val height = size.height
+                    // Define active zones (left 20% and right 20%)
+                    val sideMargin = width * 0.2f
+                    // Avoid the very top to not interfere with status bar (top 10%)
+                    val topMargin = height * 0.1f
+
+                    dragType = when {
+                        offset.y < topMargin -> 0 // Ignore if started too high
+                        offset.x < sideMargin -> 1 // Left side: Brightness
+                        offset.x > width - sideMargin -> 2 // Right side: Volume
+                        else -> 0
+                    }
+
+                    if (dragType != 0) {
+                        startVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        startBrightness = activity?.window?.attributes?.screenBrightness ?: -1f
+                        if (startBrightness < 0) startBrightness = 0.5f
+                        totalDragY = 0f
+                    }
                 },
                 onVerticalDrag = { change, dragAmount ->
-                    change.consume()
-                    // 累计滑动位移（向上滑 dragAmount 为负，我们取负值使其向上为正）
-                    totalDragY -= dragAmount
-                    val isLeftSide = change.position.x < size.width / 2
+                    if (dragType == 0) return@detectVerticalDragGestures
                     
-                    // 计算位移相对于屏幕高度的比例
+                    change.consume()
+                    totalDragY -= dragAmount
+                    
                     val dragRatio = if (size.height > 0) totalDragY / size.height else 0f
                     
-                    if (isLeftSide) {
-                        // 亮度控制 (0.0 - 1.0)
+                    if (dragType == 1) {
+                        // 亮度控制
                         activity?.let { act ->
-                            val newBrightness = (startBrightness + dragRatio).coerceIn(0f, 1f)
+                            val newBrightness = (startBrightness + dragRatio).coerceIn(0.01f, 1f)
                             brightness = newBrightness
                             val lp = act.window.attributes
                             lp.screenBrightness = newBrightness
                             act.window.attributes = lp
                         }
-                    } else {
-                        // 音量控制 (基于最大音量级数)
+                    } else if (dragType == 2) {
+                        // 音量控制
                         val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                         val volumeDelta = (dragRatio * maxVol).toInt()
                         val newVol = (startVolume + volumeDelta).coerceIn(0, maxVol)
                         audioManager.setStreamVolume(
                             AudioManager.STREAM_MUSIC,
                             newVol,
-                            AudioManager.FLAG_SHOW_UI
+                            0 // Removed FLAG_SHOW_UI to be less intrusive, or keep it if preferred
                         )
                     }
                 }
